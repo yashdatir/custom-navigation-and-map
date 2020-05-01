@@ -1,0 +1,162 @@
+<html>
+<head>
+<!-- Latest compiled and minified CSS -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+<!-- Optional theme -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+
+<!-- Latest compiled and minified JavaScript -->
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+
+<script src='https://api.mapbox.com/mapbox-gl-js/v1.8.1/mapbox-gl.js'></script>
+<link href='https://api.mapbox.com/mapbox-gl-js/v1.8.1/mapbox-gl.css' rel='stylesheet' />
+
+</head>
+<body>
+<script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-directions/v4.0.2/mapbox-gl-directions.js"></script>
+<link
+rel="stylesheet"
+href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-directions/v4.0.2/mapbox-gl-directions.css"
+type="text/css"
+/>
+<div style="padding:5%;" class="container">
+<div class="row">
+<div id='map' style='width: 100%; height: 80%;'>
+</div>
+</div>
+<div class="row">
+<center>Controls</center>
+</div>
+<script>
+  mapboxgl.accessToken = 'pk.eyJ1IjoieWFzaGRhdGlyIiwiYSI6ImNrOHhoaHk3ODAxdGczbG9ncDJhZThjcHcifQ.8s3bHLIZZvLI8sPjrXEEDQ';
+
+var locations = {
+        'features': [
+          {
+            'type': 'Feature',
+            'properties': {
+              'title': 'Pickup Location',
+              'description':
+                'pickup location on the map'
+            },
+            'geometry': {
+              'coordinates': [73.16179939999999, 22.295741],
+              'type': 'Point'
+            }
+          },
+
+
+	   {
+            'type': 'Feature',
+            'properties': {
+              'title': 'Delivery Location',
+              'description':
+                'delivery location on the map'
+            },
+            'geometry': {
+              'coordinates': [73.1646669, 22.2830504],
+              'type': 'Point'
+            }
+          }
+        ],
+        'type': 'FeatureCollection'
+      };
+
+      
+      var map = new mapboxgl.Map({
+        container: 'map', // HTML container id
+        style: 'mapbox://styles/mapbox/light-v10', // style URL
+        center: [73.16179939999999, 22.295741], // starting position as [lng, lat]
+        zoom: 14
+      });
+
+	map.addControl(
+new MapboxDirections({
+accessToken: mapboxgl.accessToken
+}),
+'top-left'
+);
+
+      map.on('load', () => {
+        map.addSource('streets', {
+          type: 'geojson',
+          data: '/help/data/how-web-apps-work/parks-outline.geojson',
+          generateId: true
+        });
+        map.addLayer(
+          {
+            id: 'highlighted-park',
+            type: 'fill',
+            source: 'streets',
+            paint: {
+              'fill-color': [
+                'case',
+                ['boolean', ['feature-state', 'highlight'], false],
+                'RGBA(117, 198, 132, 1.00)',
+                'RGBA(117, 198, 132, 0)'
+              ]
+            }
+          },
+          'water-shadow'
+        );
+      });
+
+      locations.features.forEach((feature, i) => {
+        var popup = new mapboxgl.Popup().setHTML(
+          `<h3>${feature.properties.title}</h3><p>${feature.properties.description}</p>`
+        );
+
+        var marker = new mapboxgl.Marker()
+          .setLngLat(feature.geometry.coordinates)
+          .setPopup(popup)
+          .addTo(map);
+
+        let parks = [];
+
+        marker.getElement().addEventListener('click', () => {
+          map.flyTo({
+            pitch: 45,
+            center: feature.geometry.coordinates,
+            zoom: 15.3
+          });
+          parks = map.queryRenderedFeatures(
+            map.project(feature.geometry.coordinates),
+            { layers: ['highlighted-park'] }
+          );
+          map.setFeatureState(
+            {
+              id: parks[0].id,
+              source: 'streets'
+            },
+            {
+              highlight: true
+            }
+          );
+        });
+
+        popup.on('close', () => {
+          map.flyTo({
+            pitch: 0,
+            center: [-87.622554, 41.852534],
+            zoom: 9.3
+          });
+          map.setFeatureState(
+            {
+              id: parks[0].id,
+              source: 'streets'
+            },
+            {
+              highlight: false
+            }
+          );
+        });
+      });
+      
+	
+</script>
+</div>
+</body>
+</html>
